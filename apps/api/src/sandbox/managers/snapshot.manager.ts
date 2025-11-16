@@ -38,8 +38,6 @@ import { SnapshotCreatedEvent } from '../events/snapshot-created.event'
 import { Sandbox } from '../entities/sandbox.entity'
 import { SandboxState } from '../enums/sandbox-state.enum'
 
-const DEFAULT_INITIAL_RUNNER_REGION = 'us'
-
 const SYNC_AGAIN = 'sync-again'
 const DONT_SYNC_AGAIN = 'dont-sync-again'
 type SyncState = typeof SYNC_AGAIN | typeof DONT_SYNC_AGAIN
@@ -759,8 +757,18 @@ export class SnapshotManager implements TrackableJobExecutions, OnApplicationShu
 
     let initialRunner: Runner | null = null
     try {
+      const organization = await this.organizationService.findOne(snapshot.organizationId)
+      if (!organization) {
+        throw new NotFoundException(`Organization with ID ${snapshot.organizationId} not found`)
+      }
+
+      const defaultRegion = organization.defaultRegion
+      if (!defaultRegion) {
+        throw new Error('Default region not found for organization')
+      }
+
       initialRunner = await this.runnerService.getRandomAvailableRunner({
-        region: DEFAULT_INITIAL_RUNNER_REGION,
+        region: defaultRegion,
         excludedRunnerIds: excludedRunnerIds,
       })
     } catch (error) {
