@@ -612,13 +612,14 @@ export class DockerProvider implements OnModuleInit {
     }
   }
 
-  async getImageInfo(imageName: string): Promise<{ sizeGB: number; entrypoint?: string | string[] }> {
+  async getImageInfo(imageName: string): Promise<{ sizeGB: number; entrypoint?: string | string[]; cmd?: string[] }> {
     try {
       const image = await this.docker.getImage(imageName).inspect()
       // Size is returned in bytes, convert to GB
       return {
         sizeGB: image.Size / (1024 * 1024 * 1024),
         entrypoint: image.Config.Entrypoint,
+        cmd: image.Config.Cmd,
       }
     } catch (error) {
       this.logger.error(`Error getting size for image ${imageName}:`, error)

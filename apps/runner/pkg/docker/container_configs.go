@@ -5,7 +5,6 @@ package docker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	common_daemon "github.com/daytonaio/common-go/pkg/daemon"
@@ -50,38 +49,31 @@ func (d *DockerClient) getContainerCreateConfig(sandboxDto dto.CreateSandboxDTO)
 		}
 	}
 
+	workDir := ""
+	cmd := []string{}
 	entrypoint := sandboxDto.Entrypoint
 	if d.daemonEntrypoint {
-		// Store the snapshot entrypoint as JSON in environment variable
-		// This allows the daemon wrapper to execute it
-		if len(sandboxDto.Entrypoint) > 0 {
-			entrypointJSON, err := json.Marshal(sandboxDto.Entrypoint)
-			if err == nil {
-				envVars = append(envVars, "DAYTONA_SNAPSHOT_ENTRYPOINT="+string(entrypointJSON))
-			}
+		// Inspect image
+		image, _, _ := d.apiClient.ImageInspectWithRaw(context.Background(), sandboxDto.Snapshot)
+		if image.Config.WorkingDir != "" {
+			workDir = image.Config.WorkingDir
 		}
 
-		// Get workdir from metadata or use default
-		workDir := ""
-		if sandboxDto.Metadata != nil {
-			if wd, ok := sandboxDto.Metadata["workDir"]; ok {
-				workDir = wd
-			}
-		}
+		// if workdir is empty, append flag env var to envVars
 		if workDir == "" {
-			workDir = common_daemon.UseUserHomeAsWorkDir
+			envVars = append(envVars, fmt.Sprintf("%s=true", common_daemon.UserHomeAsWorkDirEnvVar))
 		}
-
-		// Set daemon as entrypoint with wrapper script
-		entrypoint = d.getDaemonWrapperEntrypoint(workDir)
+		entrypoint = []string{"/usr/local/bin/daytona"}
+		cmd = append(cmd, sandboxDto.Entrypoint...)
 	}
 
 	return &container.Config{
-		Hostname: sandboxDto.Id,
-		Image:    sandboxDto.Snapshot,
-		// User:         sandboxDto.OsUser,
+		Hostname:     sandboxDto.Id,
+		Image:        sandboxDto.Snapshot,
+		WorkingDir:   workDir,
 		Env:          envVars,
 		Entrypoint:   entrypoint,
+		Cmd:          cmd,
 		Labels:       labels,
 		AttachStdout: true,
 		AttachStderr: true,

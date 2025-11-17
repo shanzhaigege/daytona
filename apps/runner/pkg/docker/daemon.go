@@ -21,16 +21,17 @@ import (
 func (d *DockerClient) startDaytonaDaemon(ctx context.Context, containerId string, workDir string) error {
 	defer timer.Timer()()
 
-	daemonCmd := "/usr/local/bin/daytona"
+	envVars := []string{}
 	if workDir == "" {
-		workDir = common_daemon.UseUserHomeAsWorkDir
+		envVars = append(envVars, fmt.Sprintf("%s=true", common_daemon.UserHomeAsWorkDirEnvVar))
 	}
-	daemonCmd = fmt.Sprintf("%s --work-dir %s", daemonCmd, workDir)
 
 	execOptions := container.ExecOptions{
-		Cmd:          []string{"sh", "-c", daemonCmd},
+		Cmd:          []string{"/usr/local/bin/daytona"},
 		AttachStdout: true,
 		AttachStderr: true,
+		WorkingDir:   workDir,
+		Env:          envVars,
 		Tty:          true,
 	}
 
@@ -50,41 +51,6 @@ func (d *DockerClient) startDaytonaDaemon(ctx context.Context, containerId strin
 	}
 
 	return nil
-}
-
-// getDaemonWrapperEntrypoint creates an entrypoint command that:
-// 1. Executes the snapshot entrypoint if provided (in background)
-// 2. Execs into the Daytona daemon so it becomes PID1
-// This ensures the daemon is PID1 while still executing the snapshot entrypoint
-func (d *DockerClient) getDaemonWrapperEntrypoint(workDir string) []string {
-	// Build the wrapper script as a single sh -c command
-	// This script:
-	// - Executes the snapshot entrypoint in background if DAYTONA_SNAPSHOT_ENTRYPOINT is set
-	// - Execs into the daemon, making it PID1
-	wrapperScript := fmt.Sprintf(`#!/bin/sh
-set -e
-
-# Execute snapshot entrypoint if provided (run in background)
-# Note: We don't use set -e for this part to ensure daemon always starts
-if [ -n "$DAYTONA_SNAPSHOT_ENTRYPOINT" ]; then
-	# Parse JSON array and convert to shell command
-	# Example: ["sleep", "infinity"] -> sleep infinity
-	# Remove brackets, quotes, and commas, then reconstruct command
-	ENTRYPOINT_CMD=$(echo "$DAYTONA_SNAPSHOT_ENTRYPOINT" | sed 's/^\[//;s/\]$//;s/"//g; s/,/ /g' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-	if [ -n "$ENTRYPOINT_CMD" ]; then
-		# Execute the entrypoint in background
-		# This allows it to run while daemon becomes PID1
-		# If entrypoint fails, we still continue to start daemon
-		(sh -c "$ENTRYPOINT_CMD" || true) &
-	fi
-fi
-
-# Exec into daemon so it becomes PID1
-# This replaces the shell process (PID1) with the daemon process
-exec /usr/local/bin/daytona --work-dir %s
-`, workDir)
-
-	return []string{"sh", "-c", wrapperScript}
 }
 
 func (d *DockerClient) waitForDaemonRunning(ctx context.Context, containerIP string, timeout time.Duration) error {
