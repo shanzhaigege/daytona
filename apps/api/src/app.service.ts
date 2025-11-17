@@ -15,7 +15,8 @@ import { SystemRole } from './user/enums/system-role.enum'
 import { TypedConfigService } from './config/typed-config.service'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { RegionService } from './region/services/region.service'
-import { DEFAULT_REGION_ORGANIZATION_ID } from './region/constants/default-region-organization.constant'
+import { RunnerService } from './sandbox/services/runner.service'
+import { RunnerAdapterFactory } from './sandbox/runner-adapter/runnerAdapter'
 
 export const DAYTONA_ADMIN_USER_ID = 'daytona-admin'
 
@@ -33,6 +34,8 @@ export class AppService implements OnApplicationBootstrap, OnApplicationShutdown
     private readonly snapshotService: SnapshotService,
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly regionService: RegionService,
+    private readonly runnerService: RunnerService,
+    private readonly runnerAdapterFactory: RunnerAdapterFactory,
   ) {}
 
   async onApplicationShutdown(signal?: string) {
@@ -45,7 +48,10 @@ export class AppService implements OnApplicationBootstrap, OnApplicationShutdown
       await this.stopAllCronJobs()
     }
 
+    await this.eventEmitterReadinessWatcher.waitUntilReady()
+
     await this.initializeDefaultRegion()
+    await this.initializeDefaultRunner()
     await this.initializeAdminUser()
     await this.initializeTransientRegistry()
     await this.initializeBackupRegistry()
@@ -61,25 +67,67 @@ export class AppService implements OnApplicationBootstrap, OnApplicationShutdown
   }
 
   private async initializeDefaultRegion(): Promise<void> {
-    if (
-      await this.regionService.findOneByNameAndOrganization(
-        this.configService.getOrThrow('defaultRegion'),
-        DEFAULT_REGION_ORGANIZATION_ID,
-      )
-    ) {
+    const existingRegion = await this.regionService.findOne(this.configService.getOrThrow('defaultRegion.id'))
+    if (existingRegion) {
       return
     }
 
     this.logger.log('Initializing default region...')
-    await this.eventEmitterReadinessWatcher.waitUntilReady()
-    const region = await this.regionService.create(
+
+    await this.regionService.create(
       {
-        name: this.configService.getOrThrow('defaultRegion'),
-        enforceQuotas: this.configService.getOrThrow('defaultRegionEnforceQuotas'),
+        id: this.configService.getOrThrow('defaultRegion.id'),
+        name: this.configService.getOrThrow('defaultRegion.name'),
+        enforceQuotas: this.configService.getOrThrow('defaultRegion.enforceQuotas'),
       },
-      DEFAULT_REGION_ORGANIZATION_ID,
+      null,
     )
-    this.logger.log(`Default region created successfully: ${region.name}`)
+
+    this.logger.log(`Default region created successfully: ${this.configService.getOrThrow('defaultRegion.name')}`)
+  }
+
+  private async initializeDefaultRunner(): Promise<void> {
+    if (!this.configService.get('defaultRunner.domain')) {
+      return
+    }
+
+    const runners = await this.runnerService.findAll()
+    if (runners.some((runner) => runner.domain === this.configService.getOrThrow('defaultRunner.domain'))) {
+      return
+    }
+
+    this.logger.log(`Creating default runner: ${this.configService.getOrThrow('defaultRunner.domain')}`)
+
+    const runner = await this.runnerService.create({
+      apiUrl: this.configService.getOrThrow('defaultRunner.apiUrl'),
+      proxyUrl: this.configService.getOrThrow('defaultRunner.proxyUrl'),
+      apiKey: this.configService.getOrThrow('defaultRunner.apiKey'),
+      cpu: this.configService.getOrThrow('defaultRunner.cpu'),
+      memoryGiB: this.configService.getOrThrow('defaultRunner.memory'),
+      diskGiB: this.configService.getOrThrow('defaultRunner.disk'),
+      gpu: this.configService.getOrThrow('defaultRunner.gpu'),
+      gpuType: this.configService.getOrThrow('defaultRunner.gpuType'),
+      region: this.configService.getOrThrow('defaultRegion.id'),
+      class: this.configService.getOrThrow('defaultRunner.class'),
+      domain: this.configService.getOrThrow('defaultRunner.domain'),
+      version: this.configService.get('defaultRunner.version') || '0',
+    })
+
+    const runnerAdapter = await this.runnerAdapterFactory.create(runner)
+
+    this.logger.log(`Waiting for runner ${runner.domain} to be healthy...`)
+    for (let i = 0; i < 30; i++) {
+      try {
+        await runnerAdapter.healthCheck()
+        this.logger.log(`Runner ${runner.domain} is healthy`)
+        break
+      } catch {
+        // ignore
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+
+    this.logger.log(`Default runner created successfully: ${this.configService.getOrThrow('defaultRunner.domain')}`)
   }
 
   private async initializeAdminUser(): Promise<void> {
@@ -87,7 +135,6 @@ export class AppService implements OnApplicationBootstrap, OnApplicationShutdown
       return
     }
 
-    await this.eventEmitterReadinessWatcher.waitUntilReady()
     const user = await this.userService.create({
       id: DAYTONA_ADMIN_USER_ID,
       name: 'Daytona Admin',
@@ -187,7 +234,7 @@ Admin user created with API key: ${value}
 
   private async initializeBackupRegistry(): Promise<void> {
     const existingRegistry = await this.dockerRegistryService.getAvailableBackupRegistry(
-      this.configService.getOrThrow('defaultRegion'),
+      this.configService.getOrThrow('defaultRegion.id'),
     )
     if (existingRegistry) {
       return

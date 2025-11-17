@@ -21,11 +21,11 @@ var _ MappedNullable = &OrganizationUsageOverview{}
 
 // OrganizationUsageOverview struct for OrganizationUsageOverview
 type OrganizationUsageOverview struct {
-	SandboxUsage         []SandboxUsageOverview `json:"sandboxUsage"`
-	TotalSnapshotQuota   float32                `json:"totalSnapshotQuota"`
-	CurrentSnapshotUsage float32                `json:"currentSnapshotUsage"`
-	TotalVolumeQuota     float32                `json:"totalVolumeQuota"`
-	CurrentVolumeUsage   float32                `json:"currentVolumeUsage"`
+	RegionUsage          []RegionUsageOverview `json:"regionUsage"`
+	TotalSnapshotQuota   float32               `json:"totalSnapshotQuota"`
+	CurrentSnapshotUsage float32               `json:"currentSnapshotUsage"`
+	TotalVolumeQuota     float32               `json:"totalVolumeQuota"`
+	CurrentVolumeUsage   float32               `json:"currentVolumeUsage"`
 	AdditionalProperties map[string]interface{}
 }
 
@@ -35,9 +35,9 @@ type _OrganizationUsageOverview OrganizationUsageOverview
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewOrganizationUsageOverview(sandboxUsage []SandboxUsageOverview, totalSnapshotQuota float32, currentSnapshotUsage float32, totalVolumeQuota float32, currentVolumeUsage float32) *OrganizationUsageOverview {
+func NewOrganizationUsageOverview(regionUsage []RegionUsageOverview, totalSnapshotQuota float32, currentSnapshotUsage float32, totalVolumeQuota float32, currentVolumeUsage float32) *OrganizationUsageOverview {
 	this := OrganizationUsageOverview{}
-	this.SandboxUsage = sandboxUsage
+	this.RegionUsage = regionUsage
 	this.TotalSnapshotQuota = totalSnapshotQuota
 	this.CurrentSnapshotUsage = currentSnapshotUsage
 	this.TotalVolumeQuota = totalVolumeQuota
@@ -53,28 +53,28 @@ func NewOrganizationUsageOverviewWithDefaults() *OrganizationUsageOverview {
 	return &this
 }
 
-// GetSandboxUsage returns the SandboxUsage field value
-func (o *OrganizationUsageOverview) GetSandboxUsage() []SandboxUsageOverview {
+// GetRegionUsage returns the RegionUsage field value
+func (o *OrganizationUsageOverview) GetRegionUsage() []RegionUsageOverview {
 	if o == nil {
-		var ret []SandboxUsageOverview
+		var ret []RegionUsageOverview
 		return ret
 	}
 
-	return o.SandboxUsage
+	return o.RegionUsage
 }
 
-// GetSandboxUsageOk returns a tuple with the SandboxUsage field value
+// GetRegionUsageOk returns a tuple with the RegionUsage field value
 // and a boolean to check if the value has been set.
-func (o *OrganizationUsageOverview) GetSandboxUsageOk() ([]SandboxUsageOverview, bool) {
+func (o *OrganizationUsageOverview) GetRegionUsageOk() ([]RegionUsageOverview, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return o.SandboxUsage, true
+	return o.RegionUsage, true
 }
 
-// SetSandboxUsage sets field value
-func (o *OrganizationUsageOverview) SetSandboxUsage(v []SandboxUsageOverview) {
-	o.SandboxUsage = v
+// SetRegionUsage sets field value
+func (o *OrganizationUsageOverview) SetRegionUsage(v []RegionUsageOverview) {
+	o.RegionUsage = v
 }
 
 // GetTotalSnapshotQuota returns the TotalSnapshotQuota field value
@@ -183,7 +183,7 @@ func (o OrganizationUsageOverview) MarshalJSON() ([]byte, error) {
 
 func (o OrganizationUsageOverview) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["sandboxUsage"] = o.SandboxUsage
+	toSerialize["regionUsage"] = o.RegionUsage
 	toSerialize["totalSnapshotQuota"] = o.TotalSnapshotQuota
 	toSerialize["currentSnapshotUsage"] = o.CurrentSnapshotUsage
 	toSerialize["totalVolumeQuota"] = o.TotalVolumeQuota
@@ -201,7 +201,7 @@ func (o *OrganizationUsageOverview) UnmarshalJSON(data []byte) (err error) {
 	// by unmarshalling the object into a generic map with string keys and checking
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
-		"sandboxUsage",
+		"regionUsage",
 		"totalSnapshotQuota",
 		"currentSnapshotUsage",
 		"totalVolumeQuota",
@@ -235,7 +235,7 @@ func (o *OrganizationUsageOverview) UnmarshalJSON(data []byte) (err error) {
 	additionalProperties := make(map[string]interface{})
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
-		delete(additionalProperties, "sandboxUsage")
+		delete(additionalProperties, "regionUsage")
 		delete(additionalProperties, "totalSnapshotQuota")
 		delete(additionalProperties, "currentSnapshotUsage")
 		delete(additionalProperties, "totalVolumeQuota")

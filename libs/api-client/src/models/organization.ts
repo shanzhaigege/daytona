@@ -91,9 +91,9 @@ export interface Organization {
    */
   sandboxLimitedNetworkEgress: boolean
   /**
-   * Default region
+   * Default region ID
    * @type {string}
    * @memberof Organization
    */
-  defaultRegion: string
+  defaultRegionId: string
 }

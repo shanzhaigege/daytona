@@ -13,7 +13,7 @@ import { SANDBOX_STATES_CONSUMING_COMPUTE } from '../constants/sandbox-states-co
 import { SANDBOX_STATES_CONSUMING_DISK } from '../constants/sandbox-states-consuming-disk.constant'
 import { SNAPSHOT_STATES_CONSUMING_RESOURCES } from '../constants/snapshot-states-consuming-resources.constant'
 import { VOLUME_STATES_CONSUMING_RESOURCES } from '../constants/volume-states-consuming-resources.constant'
-import { OrganizationUsageOverviewDto } from '../dto/organization-usage-overview.dto'
+import { OrganizationUsageOverviewDto, RegionUsageOverviewDto } from '../dto/organization-usage-overview.dto'
 import {
   PendingSandboxUsageOverviewInternalDto,
   SandboxUsageOverviewInternalDto,
@@ -96,32 +96,33 @@ export class OrganizationUsageService {
 
     const regionQuotas = await this.organizationService.getRegionQuotas(organizationId)
 
-    const sandboxUsageOverviews = await Promise.all(
-      regionQuotas.map((quota) => this.getSandboxUsageOverview(organizationId, quota.region)),
-    )
-    const snapshotUsageOverview = await this.getSnapshotUsageOverview(organizationId)
-    const volumeUsageOverview = await this.getVolumeUsageOverview(organizationId)
+    const regionUsage: RegionUsageOverviewDto[] = await Promise.all(
+      regionQuotas.map(async (quota) => {
+        const sandboxUsage = await this.getSandboxUsageOverview(organizationId, quota.regionId)
 
-    return {
-      sandboxUsage: sandboxUsageOverviews.map((overview) => {
-        const quota = regionQuotas.find((q) => q.region === overview.region)
-        if (!quota) {
-          throw new NotFoundException(`Sandbox quota not found for region ${overview.region}`)
-        }
-        return {
-          region: overview.region,
+        const regionUsage: RegionUsageOverviewDto = {
+          regionId: quota.regionId,
           totalCpuQuota: quota.totalCpuQuota,
           totalMemoryQuota: quota.totalMemoryQuota,
           totalDiskQuota: quota.totalDiskQuota,
-          currentCpuUsage: overview.currentCpuUsage,
-          currentMemoryUsage: overview.currentMemoryUsage,
-          currentDiskUsage: overview.currentDiskUsage,
+          currentCpuUsage: sandboxUsage.currentCpuUsage,
+          currentMemoryUsage: sandboxUsage.currentMemoryUsage,
+          currentDiskUsage: sandboxUsage.currentDiskUsage,
         }
+
+        return regionUsage
       }),
+    )
+
+    const snapshotUsage = await this.getSnapshotUsageOverview(organizationId)
+    const volumeUsage = await this.getVolumeUsageOverview(organizationId)
+
+    return {
+      regionUsage,
       totalSnapshotQuota: organization.snapshotQuota,
       totalVolumeQuota: organization.volumeQuota,
-      currentSnapshotUsage: snapshotUsageOverview.currentSnapshotUsage,
-      currentVolumeUsage: volumeUsageOverview.currentVolumeUsage,
+      currentSnapshotUsage: snapshotUsage.currentSnapshotUsage,
+      currentVolumeUsage: volumeUsage.currentVolumeUsage,
     }
   }
 
@@ -129,15 +130,15 @@ export class OrganizationUsageService {
    * Get the current and pending usage overview for sandbox-related organization quotas in a specific region.
    *
    * @param organizationId
-   * @param region
+   * @param regionId
    * @param excludeSandboxId - If provided, the usage overview will exclude the current usage of the sandbox with the given ID
    */
   async getSandboxUsageOverview(
     organizationId: string,
-    region: string,
+    regionId: string,
     excludeSandboxId?: string,
   ): Promise<SandboxUsageOverviewWithPendingInternalDto> {
-    let cachedUsageOverview = await this.getCachedSandboxUsageOverview(organizationId, region)
+    let cachedUsageOverview = await this.getCachedSandboxUsageOverview(organizationId, regionId)
 
     // cache hit
     if (cachedUsageOverview) {
@@ -154,7 +155,7 @@ export class OrganizationUsageService {
 
     try {
       // check if cache was updated while waiting for lock
-      cachedUsageOverview = await this.getCachedSandboxUsageOverview(organizationId, region)
+      cachedUsageOverview = await this.getCachedSandboxUsageOverview(organizationId, regionId)
 
       // cache hit
       if (cachedUsageOverview) {
@@ -166,15 +167,14 @@ export class OrganizationUsageService {
       }
 
       // cache miss, fetch from db
-      const usageOverview = await this.fetchSandboxUsageFromDb(organizationId, region)
+      const usageOverview = await this.fetchSandboxUsageFromDb(organizationId, regionId)
 
       // get pending usage separately since it's not stored in DB
-      const pendingUsageOverview = await this.getCachedPendingSandboxUsageOverview(organizationId, region)
+      const pendingUsageOverview = await this.getCachedPendingSandboxUsageOverview(organizationId, regionId)
 
       const combinedUsageOverview: SandboxUsageOverviewWithPendingInternalDto = {
         ...usageOverview,
         ...pendingUsageOverview,
-        region,
       }
 
       if (excludeSandboxId) {
@@ -312,11 +312,11 @@ export class OrganizationUsageService {
    * Get the cached current and pending usage overview for sandbox-related organization quotas in a specific region.
    *
    * @param organizationId
-   * @param region
+   * @param regionId
    */
   private async getCachedSandboxUsageOverview(
     organizationId: string,
-    region: string,
+    regionId: string,
   ): Promise<SandboxUsageOverviewWithPendingInternalDto | null> {
     const script = `
       return {
@@ -332,12 +332,12 @@ export class OrganizationUsageService {
     const result = (await this.redis.eval(
       script,
       6,
-      this.getCurrentQuotaUsageCacheKey(organizationId, 'cpu', region),
-      this.getCurrentQuotaUsageCacheKey(organizationId, 'memory', region),
-      this.getCurrentQuotaUsageCacheKey(organizationId, 'disk', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', region),
+      this.getCurrentQuotaUsageCacheKey(organizationId, 'cpu', regionId),
+      this.getCurrentQuotaUsageCacheKey(organizationId, 'memory', regionId),
+      this.getCurrentQuotaUsageCacheKey(organizationId, 'disk', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', regionId),
     )) as (string | null)[]
 
     const [cpuUsage, memoryUsage, diskUsage, pendingCpuUsage, pendingMemoryUsage, pendingDiskUsage] = result
@@ -375,7 +375,6 @@ export class OrganizationUsageService {
       pendingCpuUsage: parsedPendingCpuUsage,
       pendingMemoryUsage: parsedPendingMemoryUsage,
       pendingDiskUsage: parsedPendingDiskUsage,
-      region,
     }
   }
 
@@ -383,11 +382,11 @@ export class OrganizationUsageService {
    * Get the cached pending usage overview for sandbox-related organization quotas in a specific region.
    *
    * @param organizationId
-   * @param region
+   * @param regionId
    */
   private async getCachedPendingSandboxUsageOverview(
     organizationId: string,
-    region: string,
+    regionId: string,
   ): Promise<PendingSandboxUsageOverviewInternalDto> {
     const script = `
       return {
@@ -399,9 +398,9 @@ export class OrganizationUsageService {
     const result = (await this.redis.eval(
       script,
       3,
-      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', region),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', regionId),
     )) as (string | null)[]
 
     const [pendingCpuUsage, pendingMemoryUsage, pendingDiskUsage] = result
@@ -602,9 +601,9 @@ export class OrganizationUsageService {
    * Fetch the current usage overview for sandbox-related organization quotas in a specific region from the database and cache the results.
    *
    * @param organizationId
-   * @param region
+   * @param regionId
    */
-  async fetchSandboxUsageFromDb(organizationId: string, region: string): Promise<SandboxUsageOverviewInternalDto> {
+  async fetchSandboxUsageFromDb(organizationId: string, regionId: string): Promise<SandboxUsageOverviewInternalDto> {
     // fetch from db
     const sandboxUsageMetrics: {
       used_cpu: number
@@ -618,7 +617,7 @@ export class OrganizationUsageService {
         'SUM(CASE WHEN sandbox.state IN (:...statesConsumingDisk) THEN sandbox.disk ELSE 0 END) as used_disk',
       ])
       .where('sandbox.organizationId = :organizationId', { organizationId })
-      .andWhere('sandbox.region = :region', { region })
+      .andWhere('sandbox.region = :regionId', { regionId })
       .setParameter('statesConsumingCompute', SANDBOX_STATES_CONSUMING_COMPUTE)
       .setParameter('statesConsumingDisk', SANDBOX_STATES_CONSUMING_DISK)
       .getRawOne()
@@ -628,9 +627,9 @@ export class OrganizationUsageService {
     const diskUsage = Number(sandboxUsageMetrics.used_disk) || 0
 
     // cache the results
-    const cpuCacheKey = this.getCurrentQuotaUsageCacheKey(organizationId, 'cpu', region)
-    const memoryCacheKey = this.getCurrentQuotaUsageCacheKey(organizationId, 'memory', region)
-    const diskCacheKey = this.getCurrentQuotaUsageCacheKey(organizationId, 'disk', region)
+    const cpuCacheKey = this.getCurrentQuotaUsageCacheKey(organizationId, 'cpu', regionId)
+    const memoryCacheKey = this.getCurrentQuotaUsageCacheKey(organizationId, 'memory', regionId)
+    const diskCacheKey = this.getCurrentQuotaUsageCacheKey(organizationId, 'disk', regionId)
 
     await this.redis
       .multi()
@@ -639,7 +638,7 @@ export class OrganizationUsageService {
       .setex(diskCacheKey, this.CACHE_TTL_SECONDS, diskUsage)
       .exec()
 
-    await this.resetCacheStaleness(organizationId, 'sandbox', region)
+    await this.resetCacheStaleness(organizationId, 'sandbox', regionId)
 
     return {
       currentCpuUsage: cpuUsage,
@@ -703,14 +702,14 @@ export class OrganizationUsageService {
    *
    * @param organizationId
    * @param quotaType
-   * @param region
+   * @param regionId
    */
   private getCurrentQuotaUsageCacheKey(
     organizationId: string,
     quotaType: OrganizationUsageQuotaType,
-    region?: string,
+    regionId?: string,
   ): string {
-    return `org:${organizationId}${region ? `:region:${region}` : ''}:quota:${quotaType}:usage`
+    return `org:${organizationId}${regionId ? `:region:${regionId}` : ''}:quota:${quotaType}:usage`
   }
 
   /**
@@ -718,14 +717,14 @@ export class OrganizationUsageService {
    *
    * @param organizationId
    * @param quotaType
-   * @param region
+   * @param regionId
    */
   private getPendingQuotaUsageCacheKey(
     organizationId: string,
     quotaType: OrganizationUsageQuotaType,
-    region?: string,
+    regionId?: string,
   ): string {
-    return `org:${organizationId}${region ? `:region:${region}` : ''}:pending-${quotaType}`
+    return `org:${organizationId}${regionId ? `:region:${regionId}` : ''}:quota:${quotaType}:pending`
   }
 
   /**
@@ -736,13 +735,13 @@ export class OrganizationUsageService {
    * @param organizationId
    * @param quotaType
    * @param delta
-   * @param region
+   * @param regionId
    */
   private async updateCurrentQuotaUsage(
     organizationId: string,
     quotaType: OrganizationUsageQuotaType,
     delta: number,
-    region?: string,
+    regionId?: string,
   ): Promise<void> {
     const script = `
       local cacheKey = KEYS[1]
@@ -764,8 +763,8 @@ export class OrganizationUsageService {
     await this.redis.eval(
       script,
       2,
-      this.getCurrentQuotaUsageCacheKey(organizationId, quotaType, region),
-      this.getPendingQuotaUsageCacheKey(organizationId, quotaType, region),
+      this.getCurrentQuotaUsageCacheKey(organizationId, quotaType, regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, quotaType, regionId),
       delta.toString(),
       this.CACHE_TTL_SECONDS.toString(),
     )
@@ -783,7 +782,7 @@ export class OrganizationUsageService {
    * As a safeguard, an expiration time is set on the pending usage cache to prevent lockout for new operations.
    *
    * @param organizationId
-   * @param region
+   * @param regionId
    * @param cpu - The amount of CPU to increment.
    * @param memory - The amount of memory to increment.
    * @param disk - The amount of disk to increment.
@@ -792,7 +791,7 @@ export class OrganizationUsageService {
    */
   async incrementPendingSandboxUsage(
     organizationId: string,
-    region: string,
+    regionId: string,
     cpu: number,
     memory: number,
     disk: number,
@@ -859,9 +858,9 @@ export class OrganizationUsageService {
     await this.redis.eval(
       script,
       3,
-      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', region),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', regionId),
       shouldIncrementCpu.toString(),
       shouldIncrementMemory.toString(),
       shouldIncrementDisk.toString(),
@@ -890,14 +889,14 @@ export class OrganizationUsageService {
    * When the user action is complete, this pending usage will be transfered to the actual usage.
    *
    * @param organizationId
-   * @param region
+   * @param regionId
    * @param cpu - If provided, the amount of CPU to decrement.
    * @param memory - If provided, the amount of memory to decrement.
    * @param disk - If provided, the amount of disk to decrement.
    */
   async decrementPendingSandboxUsage(
     organizationId: string,
-    region: string,
+    regionId: string,
     cpu?: number,
     memory?: number,
     disk?: number,
@@ -928,9 +927,9 @@ export class OrganizationUsageService {
     await this.redis.eval(
       script,
       3,
-      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', region),
-      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', region),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'cpu', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'memory', regionId),
+      this.getPendingQuotaUsageCacheKey(organizationId, 'disk', regionId),
       cpu?.toString() ?? '0',
       memory?.toString() ?? '0',
       disk?.toString() ?? '0',
@@ -1078,14 +1077,14 @@ export class OrganizationUsageService {
    *
    * @param organizationId
    * @param resourceType
-   * @param region
+   * @param regionId
    */
   private getCacheStalenessKey(
     organizationId: string,
     resourceType: OrganizationUsageResourceType,
-    region?: string,
+    regionId?: string,
   ): string {
-    return `org:${organizationId}${region ? `:region:${region}` : ''}:resource:${resourceType}:usage:fetched_at`
+    return `org:${organizationId}${regionId ? `:region:${regionId}` : ''}:resource:${resourceType}:usage:fetched_at`
   }
 
   /**
@@ -1093,14 +1092,14 @@ export class OrganizationUsageService {
    *
    * @param organizationId
    * @param resourceType
-   * @param region
+   * @param regionId
    */
   private async resetCacheStaleness(
     organizationId: string,
     resourceType: OrganizationUsageResourceType,
-    region?: string,
+    regionId?: string,
   ): Promise<void> {
-    const cacheKey = this.getCacheStalenessKey(organizationId, resourceType, region)
+    const cacheKey = this.getCacheStalenessKey(organizationId, resourceType, regionId)
     await this.redis.set(cacheKey, Date.now())
   }
 
@@ -1109,15 +1108,15 @@ export class OrganizationUsageService {
    *
    * @param organizationId
    * @param resourceType
-   * @param region
+   * @param regionId
    * @returns `true` if the cached usage is stale, `false` otherwise
    */
   private async isCacheStale(
     organizationId: string,
     resourceType: OrganizationUsageResourceType,
-    region?: string,
+    regionId?: string,
   ): Promise<boolean> {
-    const cacheKey = this.getCacheStalenessKey(organizationId, resourceType, region)
+    const cacheKey = this.getCacheStalenessKey(organizationId, resourceType, regionId)
     const cachedData = await this.redis.get(cacheKey)
 
     if (!cachedData) {

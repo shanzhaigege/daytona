@@ -16,6 +16,4 @@ export type PendingSandboxUsageOverviewInternalDto = {
 }
 
 export type SandboxUsageOverviewWithPendingInternalDto = SandboxUsageOverviewInternalDto &
-  PendingSandboxUsageOverviewInternalDto & {
-    region: string
-  }
+  PendingSandboxUsageOverviewInternalDto

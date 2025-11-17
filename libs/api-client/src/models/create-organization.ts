@@ -25,9 +25,9 @@ export interface CreateOrganization {
    */
   name: string
   /**
-   * The region of the organization where region-specific quotas will be applied
+   * The ID of the default region for the organization
    * @type {string}
    * @memberof CreateOrganization
    */
-  region?: string | null
+  regionId?: string
 }

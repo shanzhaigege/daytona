@@ -106,7 +106,7 @@ export class SandboxService {
 
   private async validateOrganizationQuotas(
     organization: Organization,
-    region: string,
+    regionId: string,
     cpu: number,
     memory: number,
     disk: number,
@@ -133,12 +133,8 @@ export class SandboxService {
       )
     }
 
-    const regionEntity = await this.regionService.findOneByNameAndOrganization(region, organization.id)
-    if (!regionEntity) {
-      throw new NotFoundException('Region not found')
-    }
-
-    if (!regionEntity.enforceQuotas) {
+    const region = await this.regionService.findOne(regionId)
+    if (!region || !region.enforceQuotas) {
       return {
         pendingCpuIncremented: false,
         pendingMemoryIncremented: false,
@@ -146,7 +142,7 @@ export class SandboxService {
       }
     }
 
-    const regionQuota = await this.organizationService.getRegionQuota(organization.id, region)
+    const regionQuota = await this.organizationService.getRegionQuota(organization.id, regionId)
     if (!regionQuota) {
       throw new NotFoundException('Resource limits not found for this organization in this region')
     }
@@ -158,7 +154,7 @@ export class SandboxService {
       diskIncremented: pendingDiskIncremented,
     } = await this.organizationUsageService.incrementPendingSandboxUsage(
       organization.id,
-      region,
+      regionId,
       cpu,
       memory,
       disk,
@@ -167,7 +163,7 @@ export class SandboxService {
 
     const usageOverview = await this.organizationUsageService.getSandboxUsageOverview(
       organization.id,
-      region,
+      regionId,
       excludeSandboxId,
     )
 
@@ -194,7 +190,7 @@ export class SandboxService {
     } catch (error) {
       await this.rollbackPendingUsage(
         organization.id,
-        region,
+        regionId,
         pendingCpuIncremented ? cpu : undefined,
         pendingMemoryIncremented ? memory : undefined,
         pendingDiskIncremented ? disk : undefined,
@@ -211,7 +207,7 @@ export class SandboxService {
 
   async rollbackPendingUsage(
     organizationId: string,
-    region: string,
+    regionId: string,
     pendingCpuIncrement?: number,
     pendingMemoryIncrement?: number,
     pendingDiskIncrement?: number,
@@ -223,7 +219,7 @@ export class SandboxService {
     try {
       await this.organizationUsageService.decrementPendingSandboxUsage(
         organizationId,
-        region,
+        regionId,
         pendingCpuIncrement,
         pendingMemoryIncrement,
         pendingDiskIncrement,
@@ -308,7 +304,7 @@ export class SandboxService {
     let pendingMemoryIncrement: number | undefined
     let pendingDiskIncrement: number | undefined
 
-    const region = this.getValidatedOrDefaultRegion(organization, createSandboxDto.target)
+    const regionId = await this.getValidatedOrDefaultRegionId(organization, createSandboxDto.target)
 
     try {
       const sandboxClass = this.getValidatedOrDefaultClass(createSandboxDto.class)
@@ -375,7 +371,7 @@ export class SandboxService {
       this.organizationService.assertOrganizationIsNotSuspended(organization)
 
       const { pendingCpuIncremented, pendingMemoryIncremented, pendingDiskIncremented } =
-        await this.validateOrganizationQuotas(organization, region, cpu, mem, disk)
+        await this.validateOrganizationQuotas(organization, regionId, cpu, mem, disk)
 
       if (pendingCpuIncremented) {
         pendingCpuIncrement = cpu
@@ -391,7 +387,7 @@ export class SandboxService {
         const warmPoolSandbox = await this.warmPoolService.fetchWarmPoolSandbox({
           organizationId: organization.id,
           snapshot: snapshotIdOrName,
-          target: region,
+          target: regionId,
           class: createSandboxDto.class,
           cpu: cpu,
           mem: mem,
@@ -410,12 +406,12 @@ export class SandboxService {
       }
 
       const runner = await this.runnerService.getRandomAvailableRunner({
-        region,
+        region: regionId,
         sandboxClass,
         snapshotRef: snapshot.internalName,
       })
 
-      const sandbox = new Sandbox(region, createSandboxDto.name)
+      const sandbox = new Sandbox(regionId, createSandboxDto.name)
 
       sandbox.organizationId = organization.id
 
@@ -470,7 +466,7 @@ export class SandboxService {
 
       await this.rollbackPendingUsage(
         organization.id,
-        region,
+        regionId,
         pendingCpuIncrement,
         pendingMemoryIncrement,
         pendingDiskIncrement,
@@ -551,7 +547,7 @@ export class SandboxService {
     let pendingMemoryIncrement: number | undefined
     let pendingDiskIncrement: number | undefined
 
-    const region = this.getValidatedOrDefaultRegion(organization, createSandboxDto.target)
+    const regionId = await this.getValidatedOrDefaultRegionId(organization, createSandboxDto.target)
 
     try {
       const sandboxClass = this.getValidatedOrDefaultClass(createSandboxDto.class)
@@ -564,7 +560,7 @@ export class SandboxService {
       this.organizationService.assertOrganizationIsNotSuspended(organization)
 
       const { pendingCpuIncremented, pendingMemoryIncremented, pendingDiskIncremented } =
-        await this.validateOrganizationQuotas(organization, region, cpu, mem, disk)
+        await this.validateOrganizationQuotas(organization, regionId, cpu, mem, disk)
 
       if (pendingCpuIncremented) {
         pendingCpuIncrement = cpu
@@ -581,7 +577,7 @@ export class SandboxService {
         await this.volumeService.validateVolumes(organization.id, volumeIdOrNames)
       }
 
-      const sandbox = new Sandbox(region, createSandboxDto.name)
+      const sandbox = new Sandbox(regionId, createSandboxDto.name)
 
       sandbox.organizationId = organization.id
 
@@ -672,7 +668,7 @@ export class SandboxService {
 
       await this.rollbackPendingUsage(
         organization.id,
-        region,
+        regionId,
         pendingCpuIncrement,
         pendingMemoryIncrement,
         pendingDiskIncrement,
@@ -1120,12 +1116,24 @@ export class SandboxService {
     }
   }
 
-  private getValidatedOrDefaultRegion(organization: Organization, region?: string): string {
-    if (!region || region.trim().length === 0) {
-      return organization.defaultRegion
+  private async getValidatedOrDefaultRegionId(organization: Organization, target?: string): Promise<string> {
+    target = target?.trim()
+
+    if (!target) {
+      return organization.defaultRegionId
     }
 
-    return region.trim()
+    const region =
+      (await this.regionService.findOneByName(target, organization.id)) ??
+      (await this.regionService.findOne(target, organization.id)) ??
+      (await this.regionService.findOneByName(target, null)) ??
+      (await this.regionService.findOne(target, null))
+
+    if (!region) {
+      throw new NotFoundException('Region not found')
+    }
+
+    return region.id
   }
 
   private getValidatedOrDefaultClass(sandboxClass: SandboxClass): SandboxClass {

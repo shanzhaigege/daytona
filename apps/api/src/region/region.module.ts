@@ -5,12 +5,14 @@
 
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { RegionController } from './controllers/region.controller'
 import { Region } from './entities/region.entity'
 import { RegionService } from './services/region.service'
+import { OrganizationModule } from '../organization/organization.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Region])],
-  controllers: [],
+  imports: [OrganizationModule, TypeOrmModule.forFeature([Region])],
+  controllers: [RegionController],
   providers: [RegionService],
   exports: [RegionService],
 })

@@ -110,6 +110,7 @@ import { RegionModule } from '../region/region.module'
     VolumeService,
     VolumeManager,
     SandboxRepository,
+    RunnerAdapterFactory,
   ],
 })
 export class SandboxModule {}

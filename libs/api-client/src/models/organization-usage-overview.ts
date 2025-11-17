@@ -14,7 +14,7 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
-import type { SandboxUsageOverview } from './sandbox-usage-overview'
+import type { RegionUsageOverview } from './region-usage-overview'
 
 /**
  *
@@ -24,10 +24,10 @@ import type { SandboxUsageOverview } from './sandbox-usage-overview'
 export interface OrganizationUsageOverview {
   /**
    *
-   * @type {Array<SandboxUsageOverview>}
+   * @type {Array<RegionUsageOverview>}
    * @memberof OrganizationUsageOverview
    */
-  sandboxUsage: Array<SandboxUsageOverview>
+  regionUsage: Array<RegionUsageOverview>
   /**
    *
    * @type {number}

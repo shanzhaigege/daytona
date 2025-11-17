@@ -40,9 +40,9 @@ class Organization(BaseModel):
     suspended_until: datetime = Field(description="Suspended until", alias="suspendedUntil")
     suspension_cleanup_grace_period_hours: Union[StrictFloat, StrictInt] = Field(description="Suspension cleanup grace period hours", alias="suspensionCleanupGracePeriodHours")
     sandbox_limited_network_egress: StrictBool = Field(description="Sandbox default network block all", alias="sandboxLimitedNetworkEgress")
-    default_region: StrictStr = Field(description="Default region", alias="defaultRegion")
+    default_region_id: StrictStr = Field(description="Default region ID", alias="defaultRegionId")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "name", "createdBy", "personal", "createdAt", "updatedAt", "suspended", "suspendedAt", "suspensionReason", "suspendedUntil", "suspensionCleanupGracePeriodHours", "sandboxLimitedNetworkEgress", "defaultRegion"]
+    __properties: ClassVar[List[str]] = ["id", "name", "createdBy", "personal", "createdAt", "updatedAt", "suspended", "suspendedAt", "suspensionReason", "suspendedUntil", "suspensionCleanupGracePeriodHours", "sandboxLimitedNetworkEgress", "defaultRegionId"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -114,7 +114,7 @@ class Organization(BaseModel):
             "suspendedUntil": obj.get("suspendedUntil"),
             "suspensionCleanupGracePeriodHours": obj.get("suspensionCleanupGracePeriodHours"),
             "sandboxLimitedNetworkEgress": obj.get("sandboxLimitedNetworkEgress"),
-            "defaultRegion": obj.get("defaultRegion")
+            "defaultRegionId": obj.get("defaultRegionId")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

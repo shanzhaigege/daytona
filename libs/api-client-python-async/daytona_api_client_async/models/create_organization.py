@@ -28,9 +28,9 @@ class CreateOrganization(BaseModel):
     CreateOrganization
     """ # noqa: E501
     name: StrictStr = Field(description="The name of organization")
-    region: Optional[StrictStr] = Field(default=None, description="The region of the organization where region-specific quotas will be applied")
+    region_id: Optional[StrictStr] = Field(default=None, description="The ID of the default region for the organization", alias="regionId")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "region"]
+    __properties: ClassVar[List[str]] = ["name", "regionId"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -78,11 +78,6 @@ class CreateOrganization(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if region (nullable) is None
-        # and model_fields_set contains the field
-        if self.region is None and "region" in self.model_fields_set:
-            _dict['region'] = None
-
         return _dict
 
     @classmethod
@@ -96,7 +91,7 @@ class CreateOrganization(BaseModel):
 
         _obj = cls.model_validate({
             "name": obj.get("name"),
-            "region": obj.get("region")
+            "regionId": obj.get("regionId")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

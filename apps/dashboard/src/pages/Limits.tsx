@@ -31,7 +31,7 @@ const Limits: React.FC = () => {
   const [tiers, setTiers] = useState<Tier[]>([])
   const [wallet, setWallet] = useState<OrganizationWallet | null>(null)
   const [usageOverview, setUsage] = useState<OrganizationUsageOverview | null>(null)
-  const [selectedRegion, setSelectedRegion] = useState<string>('')
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('')
   const [tierLoading, setTierLoading] = useState(false)
   const config = useConfig()
 
@@ -82,13 +82,13 @@ const Limits: React.FC = () => {
       const data = response.data
       setUsage(data)
 
-      if (data.sandboxUsage.length > 0 && !selectedRegion) {
-        setSelectedRegion(data.sandboxUsage[0].region)
+      if (data.regionUsage.length > 0 && !selectedRegionId) {
+        setSelectedRegionId(data.regionUsage[0].regionId)
       }
     } catch (error) {
       handleApiError(error, 'Failed to fetch usage data')
     }
-  }, [organizationsApi, selectedOrganization, selectedRegion])
+  }, [organizationsApi, selectedOrganization, selectedRegionId])
 
   const upgradeTier = useCallback(
     async (tier: number) => {
@@ -156,12 +156,12 @@ const Limits: React.FC = () => {
     )
   }
 
-  const currentSandboxUsage = useMemo(() => {
-    if (!usageOverview || !selectedRegion) {
+  const currentRegionUsage = useMemo(() => {
+    if (!usageOverview || !selectedRegionId) {
       return null
     }
-    return usageOverview.sandboxUsage.find((usage) => usage.region === selectedRegion) || null
-  }, [usageOverview, selectedRegion])
+    return usageOverview.regionUsage.find((usage) => usage.regionId === selectedRegionId) || null
+  }, [usageOverview, selectedRegionId])
 
   const githubConnected = useMemo(() => {
     if (!user?.profile?.identities) {
@@ -189,25 +189,25 @@ const Limits: React.FC = () => {
                 </Badge>
               )}
             </CardTitle>
-            {usageOverview && usageOverview.sandboxUsage.length > 0 && (
+            {usageOverview && usageOverview.regionUsage.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Region:</span>
-                {usageOverview.sandboxUsage.length > 1 ? (
-                  <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                {usageOverview.regionUsage.length > 1 ? (
+                  <Select value={selectedRegionId} onValueChange={setSelectedRegionId}>
                     <SelectTrigger className="w-auto min-w-12 max-w-48 gap-x-2">
                       <SelectValue placeholder="Select region" />
                     </SelectTrigger>
                     <SelectContent className="min-w-24 max-w-48" align="end">
-                      {usageOverview.sandboxUsage.map((usage) => (
-                        <SelectItem key={usage.region} value={usage.region}>
-                          {usage.region}
+                      {usageOverview.regionUsage.map((usage) => (
+                        <SelectItem key={usage.regionId} value={usage.regionId}>
+                          {usage.regionId}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
                   <Badge variant="secondary" className="max-w-48 truncate align-left">
-                    {usageOverview.sandboxUsage[0].region}
+                    {usageOverview.regionUsage[0].regionId}
                   </Badge>
                 )}
               </div>
@@ -224,7 +224,7 @@ const Limits: React.FC = () => {
               <Skeleton className="w-full h-full" />
             </div>
           )}
-          {usageOverview && currentSandboxUsage && (
+          {usageOverview && currentRegionUsage && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -238,15 +238,11 @@ const Limits: React.FC = () => {
                   <TableCell>
                     <div className="max-w-80">
                       <div className="w-full flex justify-end">
-                        {getUsageDisplay(
-                          currentSandboxUsage.currentCpuUsage,
-                          currentSandboxUsage.totalCpuQuota,
-                          'vCPU',
-                        )}
+                        {getUsageDisplay(currentRegionUsage.currentCpuUsage, currentRegionUsage.totalCpuQuota, 'vCPU')}
                       </div>
                       <QuotaLine
-                        current={currentSandboxUsage.currentCpuUsage}
-                        total={currentSandboxUsage.totalCpuQuota}
+                        current={currentRegionUsage.currentCpuUsage}
+                        total={currentRegionUsage.totalCpuQuota}
                       />
                     </div>
                   </TableCell>
@@ -257,14 +253,14 @@ const Limits: React.FC = () => {
                     <div className="max-w-80">
                       <div className="w-full flex justify-end">
                         {getUsageDisplay(
-                          currentSandboxUsage.currentMemoryUsage,
-                          currentSandboxUsage.totalMemoryQuota,
+                          currentRegionUsage.currentMemoryUsage,
+                          currentRegionUsage.totalMemoryQuota,
                           'GiB',
                         )}
                       </div>
                       <QuotaLine
-                        current={currentSandboxUsage.currentMemoryUsage}
-                        total={currentSandboxUsage.totalMemoryQuota}
+                        current={currentRegionUsage.currentMemoryUsage}
+                        total={currentRegionUsage.totalMemoryQuota}
                       />
                     </div>
                   </TableCell>
@@ -274,15 +270,11 @@ const Limits: React.FC = () => {
                   <TableCell>
                     <div className="max-w-80">
                       <div className="w-full flex justify-end">
-                        {getUsageDisplay(
-                          currentSandboxUsage.currentDiskUsage,
-                          currentSandboxUsage.totalDiskQuota,
-                          'GiB',
-                        )}
+                        {getUsageDisplay(currentRegionUsage.currentDiskUsage, currentRegionUsage.totalDiskQuota, 'GiB')}
                       </div>
                       <QuotaLine
-                        current={currentSandboxUsage.currentDiskUsage}
-                        total={currentSandboxUsage.totalDiskQuota}
+                        current={currentRegionUsage.currentDiskUsage}
+                        total={currentRegionUsage.totalDiskQuota}
                       />
                     </div>
                   </TableCell>

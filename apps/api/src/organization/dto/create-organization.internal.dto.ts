@@ -3,4 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0
  */
 
-export const DEFAULT_REGION_ORGANIZATION_ID = '00000000-0000-0000-0000-000000000000'
+export interface CreateOrganizationInternalDto {
+  name: string
+  regionId?: string
+}

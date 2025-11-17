@@ -17,8 +17,9 @@ export class Region {
 
   @Column({
     type: 'uuid',
+    nullable: true,
   })
-  organizationId: string
+  organizationId?: string
 
   @Column({
     type: 'boolean',
@@ -36,10 +37,18 @@ export class Region {
   })
   updatedAt: Date
 
-  constructor(organizationId: string, name: string, enforceQuotas: boolean) {
-    this.id = nanoid(12)
+  constructor(name: string, enforceQuotas: boolean, id?: string, organizationId?: string) {
     this.name = name
-    this.organizationId = organizationId
     this.enforceQuotas = enforceQuotas
+
+    if (id) {
+      this.id = id
+    } else {
+      this.id = nanoid(12)
+    }
+
+    if (organizationId) {
+      this.organizationId = organizationId
+    }
   }
 }

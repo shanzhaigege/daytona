@@ -1146,26 +1146,26 @@ export const OrganizationsApiAxiosParamCreator = function (configuration?: Confi
      *
      * @summary Update organization region quota
      * @param {string} organizationId Organization ID
-     * @param {string} region Region where the updated quota will be applied
+     * @param {string} regionId ID of the region where the updated quota will be applied
      * @param {UpdateOrganizationRegionQuota} updateOrganizationRegionQuota
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     updateOrganizationRegionQuota: async (
       organizationId: string,
-      region: string,
+      regionId: string,
       updateOrganizationRegionQuota: UpdateOrganizationRegionQuota,
       options: RawAxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
       // verify required parameter 'organizationId' is not null or undefined
       assertParamExists('updateOrganizationRegionQuota', 'organizationId', organizationId)
-      // verify required parameter 'region' is not null or undefined
-      assertParamExists('updateOrganizationRegionQuota', 'region', region)
+      // verify required parameter 'regionId' is not null or undefined
+      assertParamExists('updateOrganizationRegionQuota', 'regionId', regionId)
       // verify required parameter 'updateOrganizationRegionQuota' is not null or undefined
       assertParamExists('updateOrganizationRegionQuota', 'updateOrganizationRegionQuota', updateOrganizationRegionQuota)
-      const localVarPath = `/organizations/{organizationId}/quota/{region}`
+      const localVarPath = `/organizations/{organizationId}/quota/{regionId}`
         .replace(`{${'organizationId'}}`, encodeURIComponent(String(organizationId)))
-        .replace(`{${'region'}}`, encodeURIComponent(String(region)))
+        .replace(`{${'regionId'}}`, encodeURIComponent(String(regionId)))
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL)
       let baseOptions
@@ -1931,20 +1931,20 @@ export const OrganizationsApiFp = function (configuration?: Configuration) {
      *
      * @summary Update organization region quota
      * @param {string} organizationId Organization ID
-     * @param {string} region Region where the updated quota will be applied
+     * @param {string} regionId ID of the region where the updated quota will be applied
      * @param {UpdateOrganizationRegionQuota} updateOrganizationRegionQuota
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async updateOrganizationRegionQuota(
       organizationId: string,
-      region: string,
+      regionId: string,
       updateOrganizationRegionQuota: UpdateOrganizationRegionQuota,
       options?: RawAxiosRequestConfig,
     ): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateOrganizationRegionQuota(
         organizationId,
-        region,
+        regionId,
         updateOrganizationRegionQuota,
         options,
       )
@@ -2369,19 +2369,19 @@ export const OrganizationsApiFactory = function (
      *
      * @summary Update organization region quota
      * @param {string} organizationId Organization ID
-     * @param {string} region Region where the updated quota will be applied
+     * @param {string} regionId ID of the region where the updated quota will be applied
      * @param {UpdateOrganizationRegionQuota} updateOrganizationRegionQuota
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     updateOrganizationRegionQuota(
       organizationId: string,
-      region: string,
+      regionId: string,
       updateOrganizationRegionQuota: UpdateOrganizationRegionQuota,
       options?: RawAxiosRequestConfig,
     ): AxiosPromise<void> {
       return localVarFp
-        .updateOrganizationRegionQuota(organizationId, region, updateOrganizationRegionQuota, options)
+        .updateOrganizationRegionQuota(organizationId, regionId, updateOrganizationRegionQuota, options)
         .then((request) => request(axios, basePath))
     },
     /**
@@ -2808,7 +2808,7 @@ export class OrganizationsApi extends BaseAPI {
    *
    * @summary Update organization region quota
    * @param {string} organizationId Organization ID
-   * @param {string} region Region where the updated quota will be applied
+   * @param {string} regionId ID of the region where the updated quota will be applied
    * @param {UpdateOrganizationRegionQuota} updateOrganizationRegionQuota
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -2816,12 +2816,12 @@ export class OrganizationsApi extends BaseAPI {
    */
   public updateOrganizationRegionQuota(
     organizationId: string,
-    region: string,
+    regionId: string,
     updateOrganizationRegionQuota: UpdateOrganizationRegionQuota,
     options?: RawAxiosRequestConfig,
   ) {
     return OrganizationsApiFp(this.configuration)
-      .updateOrganizationRegionQuota(organizationId, region, updateOrganizationRegionQuota, options)
+      .updateOrganizationRegionQuota(organizationId, regionId, updateOrganizationRegionQuota, options)
       .then((request) => request(this.axios, this.basePath))
   }
 

@@ -12,7 +12,7 @@ export class RegionQuota {
   organizationId: string
 
   @PrimaryColumn()
-  region: string
+  regionId: string
 
   @ManyToOne(() => Organization, (organization) => organization.regionQuotas, {
     onDelete: 'CASCADE',

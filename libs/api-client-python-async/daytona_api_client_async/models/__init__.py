@@ -111,6 +111,7 @@ from daytona_api_client_async.models.pty_session_info import PtySessionInfo
 from daytona_api_client_async.models.range import Range
 from daytona_api_client_async.models.region import Region
 from daytona_api_client_async.models.region_screenshot_response import RegionScreenshotResponse
+from daytona_api_client_async.models.region_usage_overview import RegionUsageOverview
 from daytona_api_client_async.models.registry_push_access_dto import RegistryPushAccessDto
 from daytona_api_client_async.models.replace_request import ReplaceRequest
 from daytona_api_client_async.models.replace_result import ReplaceResult
@@ -123,7 +124,6 @@ from daytona_api_client_async.models.sandbox_desired_state import SandboxDesired
 from daytona_api_client_async.models.sandbox_info import SandboxInfo
 from daytona_api_client_async.models.sandbox_labels import SandboxLabels
 from daytona_api_client_async.models.sandbox_state import SandboxState
-from daytona_api_client_async.models.sandbox_usage_overview import SandboxUsageOverview
 from daytona_api_client_async.models.sandbox_volume import SandboxVolume
 from daytona_api_client_async.models.screenshot_response import ScreenshotResponse
 from daytona_api_client_async.models.search_files_response import SearchFilesResponse

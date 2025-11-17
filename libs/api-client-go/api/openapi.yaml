@@ -470,7 +470,7 @@ paths:
       summary: Update organization quota
       tags:
         - organizations
-  /organizations/{organizationId}/quota/{region}:
+  /organizations/{organizationId}/quota/{regionId}:
     patch:
       operationId: updateOrganizationRegionQuota
       parameters:
@@ -482,10 +482,10 @@ paths:
           schema:
             type: string
           style: simple
-        - description: Region where the updated quota will be applied
+        - description: ID of the region where the updated quota will be applied
           explode: false
           in: path
-          name: region
+          name: regionId
           required: true
           schema:
             type: string
@@ -1542,36 +1542,6 @@ paths:
             - profile
             - email
       summary: List all sandboxes paginated
-      tags:
-        - sandbox
-  /sandbox/regions:
-    get:
-      operationId: getSandboxRegions
-      parameters:
-        - description: Use with JWT to specify the organization ID
-          explode: false
-          in: header
-          name: X-Daytona-Organization-ID
-          required: false
-          schema:
-            type: string
-          style: simple
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/Region'
-                type: array
-          description: List of regions where sandboxes have been created
-      security:
-        - bearer: []
-        - oauth2:
-            - openid
-            - profile
-            - email
-      summary: List all regions where sandboxes have been created
       tags:
         - sandbox
   /sandbox/for-runner:
@@ -6935,6 +6905,36 @@ paths:
       summary: Set default registry
       tags:
         - docker-registry
+  /regions:
+    get:
+      operationId: listRegions
+      parameters:
+        - description: Use with JWT to specify the organization ID
+          explode: false
+          in: header
+          name: X-Daytona-Organization-ID
+          required: false
+          schema:
+            type: string
+          style: simple
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Region'
+                type: array
+          description: List of all regions
+      security:
+        - bearer: []
+        - oauth2:
+            - openid
+            - profile
+            - email
+      summary: List all regions
+      tags:
+        - regions
   /webhooks/organizations/{organizationId}/app-portal-access:
     post:
       operationId: WebhookController_getAppPortalAccess
@@ -7779,27 +7779,25 @@ components:
       type: object
     CreateOrganization:
       example:
+        regionId: us
         name: My Organization
-        region: us
       properties:
         name:
           description: The name of organization
           example: My Organization
           type: string
-        region:
-          description: The region of the organization where region-specific quotas
-            will be applied
+        regionId:
+          description: The ID of the default region for the organization
           example: us
-          nullable: true
           type: string
       required:
         - name
       type: object
     Organization:
       example:
+        defaultRegionId: defaultRegionId
         suspensionReason: suspensionReason
         suspendedAt: 2000-01-23T04:56:07.000+00:00
-        defaultRegion: defaultRegion
         personal: true
         suspensionCleanupGracePeriodHours: 0.8008281904610115
         suspended: true
@@ -7851,13 +7849,13 @@ components:
         sandboxLimitedNetworkEgress:
           description: Sandbox default network block all
           type: boolean
-        defaultRegion:
-          description: Default region
+        defaultRegionId:
+          description: Default region ID
           type: string
       required:
         - createdAt
         - createdBy
-        - defaultRegion
+        - defaultRegionId
         - id
         - name
         - personal
@@ -7869,17 +7867,17 @@ components:
         - suspensionReason
         - updatedAt
       type: object
-    SandboxUsageOverview:
+    RegionUsageOverview:
       example:
         totalCpuQuota: 0.8008281904610115
+        regionId: regionId
         currentDiskUsage: 2.3021358869347655
         currentMemoryUsage: 5.962133916683182
         currentCpuUsage: 6.027456183070403
         totalMemoryQuota: 1.4658129805029452
-        region: region
         totalDiskQuota: 5.637376656633329
       properties:
-        region:
+        regionId:
           type: string
         totalCpuQuota:
           type: number
@@ -7897,7 +7895,7 @@ components:
         - currentCpuUsage
         - currentDiskUsage
         - currentMemoryUsage
-        - region
+        - regionId
         - totalCpuQuota
         - totalDiskQuota
         - totalMemoryQuota
@@ -7905,28 +7903,28 @@ components:
     OrganizationUsageOverview:
       example:
         totalSnapshotQuota: 7.061401241503109
-        sandboxUsage:
-          - totalCpuQuota: 0.8008281904610115
-            currentDiskUsage: 2.3021358869347655
-            currentMemoryUsage: 5.962133916683182
-            currentCpuUsage: 6.027456183070403
-            totalMemoryQuota: 1.4658129805029452
-            region: region
-            totalDiskQuota: 5.637376656633329
-          - totalCpuQuota: 0.8008281904610115
-            currentDiskUsage: 2.3021358869347655
-            currentMemoryUsage: 5.962133916683182
-            currentCpuUsage: 6.027456183070403
-            totalMemoryQuota: 1.4658129805029452
-            region: region
-            totalDiskQuota: 5.637376656633329
         currentVolumeUsage: 2.027123023002322
         totalVolumeQuota: 3.616076749251911
         currentSnapshotUsage: 9.301444243932576
+        regionUsage:
+          - totalCpuQuota: 0.8008281904610115
+            regionId: regionId
+            currentDiskUsage: 2.3021358869347655
+            currentMemoryUsage: 5.962133916683182
+            currentCpuUsage: 6.027456183070403
+            totalMemoryQuota: 1.4658129805029452
+            totalDiskQuota: 5.637376656633329
+          - totalCpuQuota: 0.8008281904610115
+            regionId: regionId
+            currentDiskUsage: 2.3021358869347655
+            currentMemoryUsage: 5.962133916683182
+            currentCpuUsage: 6.027456183070403
+            totalMemoryQuota: 1.4658129805029452
+            totalDiskQuota: 5.637376656633329
       properties:
-        sandboxUsage:
+        regionUsage:
           items:
-            $ref: '#/components/schemas/SandboxUsageOverview'
+            $ref: '#/components/schemas/RegionUsageOverview'
           type: array
         totalSnapshotQuota:
           type: number
@@ -7939,7 +7937,7 @@ components:
       required:
         - currentSnapshotUsage
         - currentVolumeUsage
-        - sandboxUsage
+        - regionUsage
         - totalSnapshotQuota
         - totalVolumeQuota
       type: object
@@ -8771,17 +8769,6 @@ components:
         - page
         - total
         - totalPages
-      type: object
-    Region:
-      example:
-        name: us
-      properties:
-        name:
-          description: Region name
-          example: us
-          type: string
-      required:
-        - name
       type: object
     CreateBuildInfo:
       properties:
@@ -11563,6 +11550,42 @@ components:
         - name
         - url
         - username
+      type: object
+    Region:
+      example:
+        organizationId: 123e4567-e89b-12d3-a456-426614174000
+        createdAt: 2023-01-01T00:00:00.000Z
+        name: us-east-1
+        id: '123456789012'
+        updatedAt: 2023-01-01T00:00:00.000Z
+      properties:
+        id:
+          description: Region ID
+          example: '123456789012'
+          type: string
+        name:
+          description: Region name
+          example: us-east-1
+          type: string
+        organizationId:
+          description: Organization ID
+          example: 123e4567-e89b-12d3-a456-426614174000
+          nullable: true
+          type: string
+        createdAt:
+          description: Creation timestamp
+          example: 2023-01-01T00:00:00.000Z
+          type: string
+        updatedAt:
+          description: Last update timestamp
+          example: 2023-01-01T00:00:00.000Z
+          type: string
+      required:
+        - createdAt
+        - id
+        - name
+        - organizationId
+        - updatedAt
       type: object
     WebhookAppPortalAccess:
       example:

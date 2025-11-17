@@ -69,9 +69,9 @@ export class OrganizationDto {
   sandboxLimitedNetworkEgress: boolean
 
   @ApiProperty({
-    description: 'Default region',
+    description: 'Default region ID',
   })
-  defaultRegion: string
+  defaultRegionId: string
 
   static fromOrganization(organization: Organization): OrganizationDto {
     const dto: OrganizationDto = {
@@ -87,7 +87,7 @@ export class OrganizationDto {
       suspendedUntil: organization.suspendedUntil,
       suspensionCleanupGracePeriodHours: organization.suspensionCleanupGracePeriodHours,
       sandboxLimitedNetworkEgress: organization.sandboxLimitedNetworkEgress,
-      defaultRegion: organization.defaultRegion,
+      defaultRegionId: organization.defaultRegionId,
     }
 
     return dto

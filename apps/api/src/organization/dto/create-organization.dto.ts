@@ -18,12 +18,11 @@ export class CreateOrganizationDto {
   name: string
 
   @ApiPropertyOptional({
-    description: 'The region of the organization where region-specific quotas will be applied',
+    description: 'The ID of the default region for the organization',
     example: 'us',
     required: false,
-    nullable: true,
   })
   @IsString()
   @IsOptional()
-  region?: string
+  regionId?: string
 }

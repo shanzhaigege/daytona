@@ -23,8 +23,8 @@ var _ MappedNullable = &CreateOrganization{}
 type CreateOrganization struct {
 	// The name of organization
 	Name string `json:"name"`
-	// The region of the organization where region-specific quotas will be applied
-	Region               NullableString `json:"region,omitempty"`
+	// The ID of the default region for the organization
+	RegionId             *string `json:"regionId,omitempty"`
 	AdditionalProperties map[string]interface{}
 }
 
@@ -72,47 +72,36 @@ func (o *CreateOrganization) SetName(v string) {
 	o.Name = v
 }
 
-// GetRegion returns the Region field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *CreateOrganization) GetRegion() string {
-	if o == nil || IsNil(o.Region.Get()) {
+// GetRegionId returns the RegionId field value if set, zero value otherwise.
+func (o *CreateOrganization) GetRegionId() string {
+	if o == nil || IsNil(o.RegionId) {
 		var ret string
 		return ret
 	}
-	return *o.Region.Get()
+	return *o.RegionId
 }
 
-// GetRegionOk returns a tuple with the Region field value if set, nil otherwise
+// GetRegionIdOk returns a tuple with the RegionId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *CreateOrganization) GetRegionOk() (*string, bool) {
-	if o == nil {
+func (o *CreateOrganization) GetRegionIdOk() (*string, bool) {
+	if o == nil || IsNil(o.RegionId) {
 		return nil, false
 	}
-	return o.Region.Get(), o.Region.IsSet()
+	return o.RegionId, true
 }
 
-// HasRegion returns a boolean if a field has been set.
-func (o *CreateOrganization) HasRegion() bool {
-	if o != nil && o.Region.IsSet() {
+// HasRegionId returns a boolean if a field has been set.
+func (o *CreateOrganization) HasRegionId() bool {
+	if o != nil && !IsNil(o.RegionId) {
 		return true
 	}
 
 	return false
 }
 
-// SetRegion gets a reference to the given NullableString and assigns it to the Region field.
-func (o *CreateOrganization) SetRegion(v string) {
-	o.Region.Set(&v)
-}
-
-// SetRegionNil sets the value for Region to be an explicit nil
-func (o *CreateOrganization) SetRegionNil() {
-	o.Region.Set(nil)
-}
-
-// UnsetRegion ensures that no value is present for Region, not even an explicit nil
-func (o *CreateOrganization) UnsetRegion() {
-	o.Region.Unset()
+// SetRegionId gets a reference to the given string and assigns it to the RegionId field.
+func (o *CreateOrganization) SetRegionId(v string) {
+	o.RegionId = &v
 }
 
 func (o CreateOrganization) MarshalJSON() ([]byte, error) {
@@ -126,8 +115,8 @@ func (o CreateOrganization) MarshalJSON() ([]byte, error) {
 func (o CreateOrganization) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
-	if o.Region.IsSet() {
-		toSerialize["region"] = o.Region.Get()
+	if !IsNil(o.RegionId) {
+		toSerialize["regionId"] = o.RegionId
 	}
 
 	for key, value := range o.AdditionalProperties {
@@ -173,7 +162,7 @@ func (o *CreateOrganization) UnmarshalJSON(data []byte) (err error) {
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "name")
-		delete(additionalProperties, "region")
+		delete(additionalProperties, "regionId")
 		o.AdditionalProperties = additionalProperties
 	}
 

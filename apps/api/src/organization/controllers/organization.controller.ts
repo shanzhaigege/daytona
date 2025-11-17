@@ -184,7 +184,7 @@ export class OrganizationController {
     requestMetadata: {
       body: (req: TypedRequest<CreateOrganizationDto>) => ({
         name: req.body?.name,
-        region: req.body?.region,
+        regionId: req.body?.regionId,
       }),
     },
   })
@@ -324,7 +324,7 @@ export class OrganizationController {
     return this.organizationService.updateQuota(organizationId, updateDto)
   }
 
-  @Patch('/:organizationId/quota/:region')
+  @Patch('/:organizationId/quota/:regionId')
   @ApiOperation({
     summary: 'Update organization region quota',
     operationId: 'updateOrganizationRegionQuota',
@@ -338,8 +338,8 @@ export class OrganizationController {
     type: 'string',
   })
   @ApiParam({
-    name: 'region',
-    description: 'Region where the updated quota will be applied',
+    name: 'regionId',
+    description: 'ID of the region where the updated quota will be applied',
     type: 'string',
   })
   @RequiredSystemRole(SystemRole.ADMIN)
@@ -350,7 +350,7 @@ export class OrganizationController {
     targetIdFromRequest: (req) => req.params.organizationId,
     requestMetadata: {
       params: (req) => ({
-        region: req.params.region,
+        regionId: req.params.regionId,
       }),
       body: (req: TypedRequest<UpdateOrganizationRegionQuotaDto>) => ({
         totalCpuQuota: req.body?.totalCpuQuota,
@@ -361,10 +361,10 @@ export class OrganizationController {
   })
   async updateOrganizationRegionQuota(
     @Param('organizationId') organizationId: string,
-    @Param('region') region: string,
+    @Param('regionId') regionId: string,
     @Body() updateDto: UpdateOrganizationRegionQuotaDto,
   ): Promise<void> {
-    return this.organizationService.updateRegionQuota(organizationId, region, updateDto)
+    return this.organizationService.updateRegionQuota(organizationId, regionId, updateDto)
   }
 
   @Post('/:organizationId/leave')

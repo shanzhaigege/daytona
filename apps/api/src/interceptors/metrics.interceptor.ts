@@ -275,11 +275,11 @@ export class MetricsInterceptor implements NestInterceptor, OnApplicationShutdow
           case '/api/organizations/:organizationId/quota':
             this.captureUpdateOrganizationQuota(props, request.params.organizationId, request.body)
             break
-          case '/api/organizations/:organizationId/quota/:region':
+          case '/api/organizations/:organizationId/quota/:regionId':
             this.captureUpdateOrganizationRegionQuota(
               props,
               request.params.organizationId,
-              request.params.region,
+              request.params.regionId,
               request.body,
             )
             break
@@ -712,12 +712,12 @@ export class MetricsInterceptor implements NestInterceptor, OnApplicationShutdow
   private captureUpdateOrganizationRegionQuota(
     props: CommonCaptureProps,
     organizationId: string,
-    region: string,
+    regionId: string,
     request: UpdateOrganizationRegionQuotaDto,
   ) {
     this.capture('api_organization_region_quota_updated', props, 'api_organization_region_quota_update_failed', {
       organization_id: organizationId,
-      organization_region: region,
+      organization_region_id: regionId,
       organization_region_total_cpu_quota: request.totalCpuQuota,
       organization_region_total_memory_quota_mb: request.totalMemoryQuota ? request.totalMemoryQuota * 1024 : null,
       organization_region_total_disk_quota_gb: request.totalDiskQuota,

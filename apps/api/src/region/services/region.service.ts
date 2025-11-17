@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0
  */
 
-import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
+import { REGION_NAME_REGEX } from '../constants/region-name-regex.constant'
 import { CreateRegionInternalDto } from '../dto/create-region.internal.dto'
 import { Region } from '../entities/region.entity'
 
@@ -18,36 +19,52 @@ export class RegionService {
     private readonly regionRepository: Repository<Region>,
   ) {}
 
-  async create(createRegionDto: CreateRegionInternalDto, organizationId: string): Promise<Region> {
+  /**
+   * @param createRegionDto - The data to create the region.
+   * @param organizationId - The ID of the organization, or null for non-organization regions.
+   * @throws {BadRequestException} If the region name is invalid.
+   * @throws {ConflictException} If the region with the same ID already exists or region with the same name already exists in the organization.
+   */
+  async create(createRegionDto: CreateRegionInternalDto, organizationId: string | null): Promise<Region> {
+    if (!REGION_NAME_REGEX.test(createRegionDto.name)) {
+      throw new BadRequestException('Region name must contain only letters, numbers, underscores, periods, and hyphens')
+    }
+    if (createRegionDto.name.length < 2 || createRegionDto.name.length > 255) {
+      throw new BadRequestException('Region name must be between 3 and 255 characters')
+    }
+
+    if (createRegionDto.id) {
+      const existingRegion = await this.findOne(createRegionDto.id)
+      if (existingRegion) {
+        throw new ConflictException(`Region with id ${createRegionDto.id} already exists`)
+      }
+    }
+
     try {
-      const region = new Region(organizationId, createRegionDto.name, createRegionDto.enforceQuotas)
-      return this.regionRepository.save(region)
+      const region = new Region(createRegionDto.name, createRegionDto.enforceQuotas, createRegionDto.id, organizationId)
+      return await this.regionRepository.save(region)
     } catch (error) {
       if (error.code === '23505') {
-        throw new ConflictException(`Region with name ${createRegionDto.name} already exists in this organization`)
+        throw new ConflictException(`Region with name ${createRegionDto.name} already exists`)
       }
       throw error
     }
   }
 
-  async findOneOrFail(id: string, organizationId?: string): Promise<Region> {
-    const region = await this.regionRepository.findOne({
-      where: { id },
-      ...(organizationId ? { organizationId } : {}),
-    })
-
-    if (!region) {
-      throw new NotFoundException('Region not found')
-    }
-
-    return region
-  }
-
-  async findOneByNameAndOrganization(name: string, organizationId: string): Promise<Region | null> {
+  /**
+   * @param id - The ID of the region.
+   * @param organizationId - The ID of the organization, or null for non-organization regions, or undefined to skip organization check.
+   * @returns The region if found, or null otherwise.
+   */
+  async findOne(id: string, organizationId?: string | null): Promise<Region | null> {
     const region = await this.regionRepository.findOne({
       where: {
-        name,
-        organizationId,
+        id,
+        ...(organizationId === undefined
+          ? {}
+          : organizationId === null
+            ? { organizationId: IsNull() }
+            : { organizationId }),
       },
     })
 
@@ -58,7 +75,27 @@ export class RegionService {
     return region
   }
 
-  async getOrganizationId(regionId: string): Promise<string> {
+  /**
+   * @param name - The name of the region.
+   * @param organizationId - The organization ID, or null for non-organization regions.
+   * @returns The region if found, or null otherwise.
+   */
+  async findOneByName(name: string, organizationId: string | null): Promise<Region | null> {
+    const region = await this.regionRepository.findOne({
+      where: [{ name, organizationId: organizationId ?? IsNull() }],
+    })
+
+    if (!region) {
+      return null
+    }
+
+    return region
+  }
+
+  /**
+   * @returns The organization ID of the region or null if the region is found, or undefined if the region is not found.
+   */
+  async getOrganizationId(regionId: string): Promise<string | null | undefined> {
     const region = await this.regionRepository.findOne({
       where: {
         id: regionId,
@@ -67,15 +104,38 @@ export class RegionService {
       loadEagerRelations: false,
     })
 
-    if (!region || !region.organizationId) {
+    if (!region) {
+      return undefined
+    }
+
+    return region.organizationId || null
+  }
+
+  /**
+   * @param organizationId - The organization ID of the regions to find, or null for non-organization regions.
+   */
+  async findAll(organizationId: string | null): Promise<Region[]> {
+    return this.regionRepository.find({
+      where: {
+        organizationId: organizationId ?? IsNull(),
+      },
+      order: {
+        name: 'ASC',
+      },
+    })
+  }
+
+  /**
+   * @param id - The ID of the region to delete.
+   * @throws {NotFoundException} If the region is not found.
+   */
+  async delete(id: string): Promise<void> {
+    const region = await this.findOne(id)
+
+    if (!region) {
       throw new NotFoundException('Region not found')
     }
 
-    return region.organizationId
-  }
-
-  async delete(id: string): Promise<void> {
-    const region = await this.findOneOrFail(id)
     await this.regionRepository.remove(region)
   }
 }

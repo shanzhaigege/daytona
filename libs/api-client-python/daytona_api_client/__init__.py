@@ -26,6 +26,7 @@ from daytona_api_client.api.docker_registry_api import DockerRegistryApi
 from daytona_api_client.api.object_storage_api import ObjectStorageApi
 from daytona_api_client.api.organizations_api import OrganizationsApi
 from daytona_api_client.api.preview_api import PreviewApi
+from daytona_api_client.api.regions_api import RegionsApi
 from daytona_api_client.api.runners_api import RunnersApi
 from daytona_api_client.api.sandbox_api import SandboxApi
 from daytona_api_client.api.snapshots_api import SnapshotsApi
@@ -143,6 +144,7 @@ from daytona_api_client.models.pty_session_info import PtySessionInfo
 from daytona_api_client.models.range import Range
 from daytona_api_client.models.region import Region
 from daytona_api_client.models.region_screenshot_response import RegionScreenshotResponse
+from daytona_api_client.models.region_usage_overview import RegionUsageOverview
 from daytona_api_client.models.registry_push_access_dto import RegistryPushAccessDto
 from daytona_api_client.models.replace_request import ReplaceRequest
 from daytona_api_client.models.replace_result import ReplaceResult
@@ -155,7 +157,6 @@ from daytona_api_client.models.sandbox_desired_state import SandboxDesiredState
 from daytona_api_client.models.sandbox_info import SandboxInfo
 from daytona_api_client.models.sandbox_labels import SandboxLabels
 from daytona_api_client.models.sandbox_state import SandboxState
-from daytona_api_client.models.sandbox_usage_overview import SandboxUsageOverview
 from daytona_api_client.models.sandbox_volume import SandboxVolume
 from daytona_api_client.models.screenshot_response import ScreenshotResponse
 from daytona_api_client.models.search_files_response import SearchFilesResponse

@@ -6422,7 +6422,7 @@ class OrganizationsApi:
     async def update_organization_region_quota(
         self,
         organization_id: Annotated[StrictStr, Field(description="Organization ID")],
-        region: Annotated[StrictStr, Field(description="Region where the updated quota will be applied")],
+        region_id: Annotated[StrictStr, Field(description="ID of the region where the updated quota will be applied")],
         update_organization_region_quota: UpdateOrganizationRegionQuota,
         _request_timeout: Union[
             None,
@@ -6442,8 +6442,8 @@ class OrganizationsApi:
 
         :param organization_id: Organization ID (required)
         :type organization_id: str
-        :param region: Region where the updated quota will be applied (required)
-        :type region: str
+        :param region_id: ID of the region where the updated quota will be applied (required)
+        :type region_id: str
         :param update_organization_region_quota: (required)
         :type update_organization_region_quota: UpdateOrganizationRegionQuota
         :param _request_timeout: timeout setting for this request. If one
@@ -6470,7 +6470,7 @@ class OrganizationsApi:
 
         _param = self._update_organization_region_quota_serialize(
             organization_id=organization_id,
-            region=region,
+            region_id=region_id,
             update_organization_region_quota=update_organization_region_quota,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -6496,7 +6496,7 @@ class OrganizationsApi:
     async def update_organization_region_quota_with_http_info(
         self,
         organization_id: Annotated[StrictStr, Field(description="Organization ID")],
-        region: Annotated[StrictStr, Field(description="Region where the updated quota will be applied")],
+        region_id: Annotated[StrictStr, Field(description="ID of the region where the updated quota will be applied")],
         update_organization_region_quota: UpdateOrganizationRegionQuota,
         _request_timeout: Union[
             None,
@@ -6516,8 +6516,8 @@ class OrganizationsApi:
 
         :param organization_id: Organization ID (required)
         :type organization_id: str
-        :param region: Region where the updated quota will be applied (required)
-        :type region: str
+        :param region_id: ID of the region where the updated quota will be applied (required)
+        :type region_id: str
         :param update_organization_region_quota: (required)
         :type update_organization_region_quota: UpdateOrganizationRegionQuota
         :param _request_timeout: timeout setting for this request. If one
@@ -6544,7 +6544,7 @@ class OrganizationsApi:
 
         _param = self._update_organization_region_quota_serialize(
             organization_id=organization_id,
-            region=region,
+            region_id=region_id,
             update_organization_region_quota=update_organization_region_quota,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -6570,7 +6570,7 @@ class OrganizationsApi:
     async def update_organization_region_quota_without_preload_content(
         self,
         organization_id: Annotated[StrictStr, Field(description="Organization ID")],
-        region: Annotated[StrictStr, Field(description="Region where the updated quota will be applied")],
+        region_id: Annotated[StrictStr, Field(description="ID of the region where the updated quota will be applied")],
         update_organization_region_quota: UpdateOrganizationRegionQuota,
         _request_timeout: Union[
             None,
@@ -6590,8 +6590,8 @@ class OrganizationsApi:
 
         :param organization_id: Organization ID (required)
         :type organization_id: str
-        :param region: Region where the updated quota will be applied (required)
-        :type region: str
+        :param region_id: ID of the region where the updated quota will be applied (required)
+        :type region_id: str
         :param update_organization_region_quota: (required)
         :type update_organization_region_quota: UpdateOrganizationRegionQuota
         :param _request_timeout: timeout setting for this request. If one
@@ -6618,7 +6618,7 @@ class OrganizationsApi:
 
         _param = self._update_organization_region_quota_serialize(
             organization_id=organization_id,
-            region=region,
+            region_id=region_id,
             update_organization_region_quota=update_organization_region_quota,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -6639,7 +6639,7 @@ class OrganizationsApi:
     def _update_organization_region_quota_serialize(
         self,
         organization_id,
-        region,
+        region_id,
         update_organization_region_quota,
         _request_auth,
         _content_type,
@@ -6664,8 +6664,8 @@ class OrganizationsApi:
         # process the path parameters
         if organization_id is not None:
             _path_params['organizationId'] = organization_id
-        if region is not None:
-            _path_params['region'] = region
+        if region_id is not None:
+            _path_params['regionId'] = region_id
         # process the query parameters
         # process the header parameters
         # process the form parameters
@@ -6697,7 +6697,7 @@ class OrganizationsApi:
 
         return self.api_client.param_serialize(
             method='PATCH',
-            resource_path='/organizations/{organizationId}/quota/{region}',
+            resource_path='/organizations/{organizationId}/quota/{regionId}',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
