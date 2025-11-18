@@ -28,6 +28,7 @@ services:
 
   runner:
     image: daytonaio/daytona-runner
+    init: true
     networks:
       - daytona-network
     ports:
